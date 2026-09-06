@@ -2,7 +2,7 @@
 // linear working space, so mixing in the shader happens in linear light.
 export const CONFIG = {
   // Orb diameter as a fraction of the shorter viewport side.
-  diameter: 0.34,
+  diameter: 0.272,
   // Travel speed in viewport heights per second (DVD-screensaver pace).
   speed: 0.26,
   // Initial heading. Up-right, like the reference (trail streams down-left).
@@ -40,14 +40,14 @@ export const CONFIG = {
     0xf26fb2, // 315 pink
   ],
   colors: {
-    core: 0xf6eee2, // warm white centre
+    core: 0xf4e9d9, // warm white centre
     white: 0xffffff, // highlight / glint white
     trail: 0x30c6f2, // energy trail
   },
   // The white core sits up and to the left (toward the key light), screen-fixed.
   coreOffset: [-0.12, 0.15],
-  coreSize: 0.35, // fully white inside this radius of the offset point
-  coreEdge: 0.95, // rim colours take over beyond this
+  coreSize: 0.2, // fully white inside this radius of the offset point
+  coreEdge: 0.88, // rim colours take over beyond this
 
   // Lights are fixed in view space so the rolling grid glistens as it turns.
   // Each is given as the point on the orb's disc where its highlight sits.
@@ -56,4 +56,28 @@ export const CONFIG = {
     [-0.1, 0.44],
     [0.28, -0.36],
   ],
+
+  // Wordmark that appears behind the orb when it is tapped.
+  word: {
+    text: 'world',
+    font: 'Inter', // self-hosted via @fontsource/inter; swap for the brand face if you have it
+    weight: 800,
+    letterSpacing: '-0.035em',
+    color: 0xf3f3f3, // just under white so the sweep can brighten the letters
+    sweepTint: [0x38d2f5, 0xf46fb6], // cyan leading edge, pink trailing edge of the sweep
+    width: 0.5, // target ink width as a fraction of the viewport width
+    widthPortrait: 0.64, // same, on portrait screens
+    maxHeight: 0.26, // cap on font size as a fraction of the viewport height
+    blurRadius: 0.06, // blur-in radius as a fraction of the font size
+    show: 0.5, // seconds to resolve in
+    hold: 1.4, // seconds fully visible (restarts on every tap)
+    hide: 0.9, // seconds to fade out
+    sweepDelay: 0.12,
+    sweepDuration: 1.0,
+    sweepWidth: 0.06,
+    scaleIn: 0.965,
+    scaleOut: 1.02,
+    hitRadius: 1.2, // tap tolerance in orb radii (mouse)
+    touchHitRadius: 1.5, // tap tolerance in orb radii (touch)
+  },
 };

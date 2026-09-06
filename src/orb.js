@@ -22,6 +22,7 @@ const fragmentShader = /* glsl */ `
 
   uniform vec2  uDir;         // smoothed travel direction (view space)
   uniform mat3  uRotInv;      // view -> orb object space (for the rolling grid)
+  uniform mat3  uRot;         // orb object space -> view
   uniform float uRadiusPx;    // orb radius in device pixels
   uniform float uPx;          // line width scale (device pixels per CSS pixel)
   uniform float uQuadScale;   // quad half-size in orb radii
@@ -78,7 +79,7 @@ const fragmentShader = /* glsl */ `
 
     // Gentle extra lift toward the key light, rim brightening at the edge.
     float lam = max(dot(n, uKeyDir), 0.0);
-    col = mix(col, uWhite, pow(lam, 6.0) * 0.15);
+    col = mix(col, uWhite, pow(lam, 6.0) * 0.08);
     float fres = pow(1.0 - nz, 3.0);
     col *= 1.0 + fres * 0.15;
     vec3 baseCol = col;
@@ -112,7 +113,7 @@ const fragmentShader = /* glsl */ `
     float specA = pow(max(dot(n, uGlintA), 0.0), 120.0);
     float specB = pow(max(dot(n, uGlintB), 0.0), 120.0);
     float sheen = 0.35 + 0.65 * pow(lam, 2.0);
-    float lineI = line * uGridStrength * (0.045 * sheen + 0.2 * (specA + specB));
+    float lineI = line * uGridStrength * (0.045 * sheen + 0.1 * (specA + specB));
     col += (uWhite - col) * clamp(lineI, 0.0, 1.0);
     col += uWhite * lineI * 0.35;
 
@@ -122,9 +123,15 @@ const fragmentShader = /* glsl */ `
     float armP = exp(-dp / (0.8 * uPx)) * exp(-dm / len);
     float sc = gauss(sqrt(dm * dm + dp * dp), 1.4 * uPx);
     float star = (armM + armP) * 0.9 + sc * 1.4;
+    // Light the whole star by how close its crossing sits to a highlight,
+    // so each glint reads as one complete star rather than a lit cell.
+    float lonC = floor(cm + 0.5) * TWO_PI / uGridDiv.x;
+    float latC = floor(cp + 0.5) * PI / uGridDiv.y;
+    vec3 nc = uRot * vec3(cos(latC) * cos(lonC), sin(latC), cos(latC) * sin(lonC));
+    float specC = pow(max(dot(nc, uGlintA), 0.0), 120.0) + pow(max(dot(nc, uGlintB), 0.0), 120.0);
     // Crossings bunch up toward the poles; ease the sparkle off there.
     float starFade = smoothstep(0.95, 0.7, abs(no.y));
-    float glint = star * (specA + specB) * starFade * uGlintStrength;
+    float glint = star * specC * starFade * uGlintStrength;
     col += uWhite * glint * 1.6;
 
     // ---------- halo outside the silhouette ----------
@@ -133,8 +140,10 @@ const fragmentShader = /* glsl */ `
     float haloI = exp(-rOut * 5.0) * win;
     vec3 halo = baseCol * haloI * (0.2 + 0.55 * trailW) * (1.0 - cover);
 
-    // Premultiplied output: opaque sphere, additive halo.
-    gl_FragColor = vec4(col * cover + halo, cover);
+    // Premultiplied output: opaque sphere, screen-like halo (adds over black,
+    // never overshoots over bright content behind the orb).
+    float haloA = clamp(dot(halo, vec3(0.2126, 0.7152, 0.0722)), 0.0, 1.0) * (1.0 - cover);
+    gl_FragColor = vec4(col * cover + halo, cover + haloA);
   }
 `;
 
@@ -152,6 +161,7 @@ export class Orb {
     this.uniforms = {
       uDir: { value: new THREE.Vector2(1, 0) },
       uRotInv: { value: new THREE.Matrix3() },
+      uRot: { value: new THREE.Matrix3() },
       uRadiusPx: { value: 100 },
       uPx: { value: 1 },
       uQuadScale: { value: QUAD_SCALE },
@@ -201,6 +211,8 @@ export class Orb {
   update(position, direction, quaternion) {
     this.mesh.position.set(position.x, position.y, 0);
     this.uniforms.uDir.value.copy(direction);
+    this._m4.makeRotationFromQuaternion(quaternion);
+    this.uniforms.uRot.value.setFromMatrix4(this._m4);
     this._q.copy(quaternion).invert();
     this._m4.makeRotationFromQuaternion(this._q);
     this.uniforms.uRotInv.value.setFromMatrix4(this._m4);

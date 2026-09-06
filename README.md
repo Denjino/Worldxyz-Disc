@@ -16,6 +16,11 @@ edges, DVD-screensaver style. Rendered with [three.js](https://threejs.org).
   every bounce.
 - **Post** is a light bloom and a dithered linear-to-sRGB output pass, which
   keeps the soft glows from banding on pure black.
+- **Tap the orb** and the `world` wordmark resolves out of a blur behind it,
+  a soft light sweep crosses the letters, then it fades away. Every tap
+  restarts the sweep and the hold, so it can be triggered as often as you like.
+  The face is Inter 800 (self-hosted via `@fontsource/inter`); to use the brand
+  typeface instead, add its `@font-face` and change `word.font` in the config.
 
 The sphere itself is drawn analytically on a single quad (the fragment shader
 reconstructs the surface normal per pixel), which gives a perfectly
@@ -36,8 +41,8 @@ Vercel and accept the detected defaults (build `vite build`, output `dist`).
 ## Tuning
 
 Everything worth tweaking is in `src/config.js`: orb size, speed, initial
-heading, grid density, glint strength, trail length and brightness, bloom, and
-the palette.
+heading, grid density, glint strength, trail length and brightness, bloom, the
+palette, and the wordmark (font, size, timings, sweep, tap tolerance).
 
 Open the page with `?debug` to get `window.__orb` (`pause`, `resume`, `set`,
-`advance`, `state`) for deterministic captures.
+`advance`, `tap`, `state`) for deterministic captures.

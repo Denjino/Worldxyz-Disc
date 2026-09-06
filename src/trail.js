@@ -66,7 +66,7 @@ const displayFragmentShader = /* glsl */ `
   void main() {
     vec3 c = texture2D(uMap, vUv).rgb;
     c = c * c / (c + uKnee);
-    gl_FragColor = vec4(c, 1.0);
+    gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
   }
 `;
 
@@ -105,12 +105,17 @@ export class Trail {
 
     // Full-screen quad that shows the accumulated trail in the main scene.
     this.displayUniforms = { uMap: { value: null }, uKnee: { value: CONFIG.trail.knee } };
+    // Screen blend: identical to additive over black, but it never pushes
+    // bright content underneath (the wordmark) past the bloom threshold.
     this.displayMaterial = new THREE.ShaderMaterial({
       uniforms: this.displayUniforms,
       vertexShader: displayVertexShader,
       fragmentShader: displayFragmentShader,
       transparent: true,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneMinusSrcColorFactor,
+      blendEquation: THREE.AddEquation,
       depthTest: false,
       depthWrite: false,
     });
